@@ -15,6 +15,7 @@ import { WebsocketService } from '../../services/websocket.service';
   }
 })
 export class KurentoVideoComponent implements AfterViewInit {
+  @Input() cameraUrl?: string;
 
   @Input('camera')
   public cameraId: number;
