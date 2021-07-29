@@ -15,10 +15,8 @@ import { WebsocketService } from '../../services/websocket.service';
   }
 })
 export class KurentoVideoComponent implements AfterViewInit {
-  public cameraUrl?: string;
-
   @Input('camera')
-  public cameraId: number;
+  public cameraURL: string;
   @Input('websocket')
   public webSocketUrl: string;
 
@@ -34,7 +32,7 @@ export class KurentoVideoComponent implements AfterViewInit {
 
   public ngAfterViewInit(): void {
     this.kurentoService.configure({
-      cameraId: this.cameraId,
+      cameraURL: this.cameraURL,
       webSocketUrl: this.webSocketUrl,
       videoComponent: this.video
     });
@@ -54,5 +52,4 @@ export class KurentoVideoComponent implements AfterViewInit {
   public stop(): void {
 
   }
-
 }

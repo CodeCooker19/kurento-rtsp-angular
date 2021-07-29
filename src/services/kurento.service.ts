@@ -1,11 +1,12 @@
 import { ElementRef, Injectable, OnDestroy, Output } from '@angular/core';
 import * as kurentoUtils from 'kurento-utils';
+import * as kurentoClient from '../kurento-client/js/kurento-client.js';
 import { BehaviorSubject, Subscription } from 'rxjs';
 
 import { WebsocketService } from './websocket.service';
 
 export interface KurentoServiceConfig {
-  cameraId: number;
+  cameraURL: string;
   webSocketUrl: string;
   videoComponent: ElementRef;
 }
@@ -22,9 +23,10 @@ export class KurentoService implements OnDestroy {
   @Output()
   public status: BehaviorSubject<VideoStatus> = new BehaviorSubject(VideoStatus.Stop);
 
-  protected cameraId: number;
+  protected cameraURL: string;
   protected webSocketUrl: string;
   protected video: any;
+  protected pipeline: any;  
   protected webRtcPeer: any;
   protected wsSubscription: Subscription;
 
@@ -35,61 +37,16 @@ export class KurentoService implements OnDestroy {
   }
 
   public configure(config: KurentoServiceConfig): void {
-    this.cameraId = config.cameraId;
+    this.cameraURL = config.cameraURL;
     this.webSocketUrl = config.webSocketUrl;
     this.video = config.videoComponent.nativeElement;
-    this.wsSubscription = this.wsService.initSocket(this.webSocketUrl).subscribe(
-      message => {
-        const parsedMessage = JSON.parse(message.data);
-
-        switch (parsedMessage.id) {
-          case 'startResponse':
-            this.startResponse(parsedMessage);
-            break;
-          case 'error':
-            if (this.status.getValue() === VideoStatus.Loading) {
-              this.status.next(VideoStatus.Stop);
-            }
-            console.error('Error message from server: ' + parsedMessage.message);
-            break;
-          case 'playEnd':
-            this.playEnd();
-            break;
-          case 'videoInfo':
-            console.info('Video info: ', parsedMessage);
-            break;
-          case 'iceCandidate':
-            this.webRtcPeer.addIceCandidate(parsedMessage.candidate, error => {
-              if (error) {
-                return console.error('Error adding candidate: ' + error);
-              }
-            });
-            break;
-          default:
-            if (this.status.getValue() === VideoStatus.Loading) {
-              this.status.next(VideoStatus.Stop);
-            }
-            console.error('Unrecognized message', parsedMessage);
-        }
-
-      },
-      error => console.error(error)
-    );
-    // this.wsService.ready.subscribe(() => this.start());
   }
 
   public start(): void {
     this.status.next(VideoStatus.Loading);
 
     const options = {
-      remoteVideo: this.video,
-      onicecandidate: candidate => {
-        const message = {
-          id: 'onIceCandidate',
-          candidate: candidate
-        };
-        this.sendMessage(message);
-      }
+      remoteVideo: this.video
     };
 
     this.webRtcPeer = new kurentoUtils.WebRtcPeer.WebRtcPeerRecvonly(options,
@@ -101,36 +58,87 @@ export class KurentoService implements OnDestroy {
       });
   }
 
-  public onOffer(error, offerSdp): void {
+  public onOffer(error, sdpOffer): void {
     if (error) {
       return console.error('Error generating the offer');
     }
 
-    const message = {
-      id: 'start',
-      sdpOffer: offerSdp,
-      videourl: this.cameraId
-    };
-    this.sendMessage(message);
-  }
-
-  public sendMessage(message): void {
-    const jsonMessage = JSON.stringify(message);
-    this.wsService.send(jsonMessage);
-  }
-
-  public startResponse(message): void {
-    // this.status.next(VideoStatus.Play);
-    // console.log('SDP answer received from server. Processing ...');
-    this.webRtcPeer.processAnswer(message.sdpAnswer, error => {
-      if (error) {
-        return console.error(error);
-      }
-    });
+    kurentoClient(this.webSocketUrl)
+      .then((kurentoClient) => {
+        kurentoClient.create("MediaPipeline")
+          .then((p) => {
+            this.pipeline = p;
+            this.pipeline.create("PlayerEndpoint", {uri: this.cameraURL})
+              .then((player) => {
+                this.pipeline.create("WebRtcEndpoint")
+                  .then((webRtcEndpoint) => {
+                    this.setIceCandidateCallbacks(webRtcEndpoint, this.webRtcPeer, this.onError);
+                    webRtcEndpoint.processOffer(sdpOffer)
+                      .then((sdpAnswer) => {
+                        webRtcEndpoint.gatherCandidates(this.onError);
+                        this.webRtcPeer.processAnswer(sdpAnswer);
+                      })
+                      .catch((error) => {
+                        this.onError(error);
+                      })
+                    player.connect(webRtcEndpoint)
+                      .then(() => {
+                        console.log("PlayerEndpoint-->WebRtcEndpoint connection established");
+                        player.play()
+                          .then(() => {
+                            console.log("Player playing ...");
+                          })
+                          .catch((error) => {
+                            this.onError(error);
+                          })
+                      })
+                      .catch((error) => {
+                        this.onError(error);
+                      })
+                  })
+                  .catch((error) => {
+                    this.onError(error);
+                  })
+              })
+              .catch((error) => {
+                this.onError(error);
+              })
+          })
+          .catch((error) => {
+            this.onError(error);
+          })
+      })
+      .catch((error) => {
+        this.onError(error);
+      })
   }
 
   public playEnd(): void {
     this.status.next(VideoStatus.Stop);
   }
 
+  public onError(error): void {
+    if(error) {
+      console.error(error);
+      this.playEnd();
+    }
+  }
+
+  public setIceCandidateCallbacks(webRtcEndpoint, webRtcPeer, onError): void {
+    webRtcPeer.on('icecandidate', function(candidate){
+      console.log("Local icecandidate " + JSON.stringify(candidate));
+  
+      candidate = kurentoClient.register.complexTypes.IceCandidate(candidate);
+  
+      webRtcEndpoint.addIceCandidate(candidate, onError);
+  
+    });
+    webRtcEndpoint.on('OnIceCandidate', function(event){
+      var candidate = event.candidate;
+  
+      console.log("Remote icecandidate " + JSON.stringify(candidate));
+  
+      webRtcPeer.addIceCandidate(candidate, onError);
+    });
+  }
 }
