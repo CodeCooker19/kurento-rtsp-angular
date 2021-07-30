@@ -50,6 +50,6 @@ export class KurentoVideoComponent implements AfterViewInit {
   }
 
   public stop(): void {
-
+    this.kurentoService.stop();
   }
 }

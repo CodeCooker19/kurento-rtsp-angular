@@ -55,7 +55,6 @@ export class KurentoService implements OnDestroy {
         if (error) {
           return this.onError(error);
         }
-        console.log(">>>>>>>WebRtcPeerRecvonly", error)
         this.webRtcPeer.generateOffer((a, b) => this.onOffer(a, b));
 
         this.webRtcPeer.peerConnection.addEventListener('iceconnectionstatechange', function(event){
@@ -71,9 +70,7 @@ export class KurentoService implements OnDestroy {
     if (error) {
       return console.error('Error generating the offer');
     }
-    console.log(">>>>>>>onOffer", this.webSocketUrl, this.cameraURL)
 
-    // kurentoClient.KurentoClient(this.webSocketUrl)
     new kurentoClient(this.webSocketUrl)
       .then((client) => {
         client.create("MediaPipeline")
@@ -123,6 +120,18 @@ export class KurentoService implements OnDestroy {
       .catch((error) => {
         this.onError(error);
       })
+  }
+
+  public stop(): void {
+    if (this.webRtcPeer) {
+      this.webRtcPeer.dispose();
+      this.webRtcPeer = null;
+    }
+    if(this.pipeline){
+      this.pipeline.release();
+      this.pipeline = null;
+    }
+    this.playEnd();
   }
 
   public playEnd(): void {
