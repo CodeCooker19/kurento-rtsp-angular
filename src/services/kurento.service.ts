@@ -57,6 +57,13 @@ export class KurentoService implements OnDestroy {
         }
         console.log(">>>>>>>WebRtcPeerRecvonly", error)
         this.webRtcPeer.generateOffer((a, b) => this.onOffer(a, b));
+
+        this.webRtcPeer.peerConnection.addEventListener('iceconnectionstatechange', function(event){
+          if(this.webRtcPeer && this.webRtcPeer.peerConnection){
+            console.log("oniceconnectionstatechange -> " + this.webRtcPeer.peerConnection.iceConnectionState);
+            console.log('icegatheringstate -> ' + this.webRtcPeer.peerConnection.iceGatheringState);
+          }
+        });
       });
   }
 
