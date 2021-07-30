@@ -29,7 +29,9 @@
             "styles": [
               "src/styles.scss"
             ],
-            "scripts": []
+            "scripts": [
+              "src/assets/lib/kurento-client/js/kurento-client.js"
+            ]
           },
           "configurations": {
             "production": {

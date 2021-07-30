@@ -1,6 +1,5 @@
 import { ElementRef, Injectable, OnDestroy, Output } from '@angular/core';
 import * as kurentoUtils from 'kurento-utils';
-import * as kurentoClient from '../kurento-client/js/kurento-client.js';
 import { BehaviorSubject, Subscription } from 'rxjs';
 
 import { WebsocketService } from './websocket.service';
@@ -16,6 +15,8 @@ export enum VideoStatus {
   Play,
   Stop
 }
+
+declare var kurentoClient: any;
 
 @Injectable()
 export class KurentoService implements OnDestroy {
@@ -52,8 +53,9 @@ export class KurentoService implements OnDestroy {
     this.webRtcPeer = new kurentoUtils.WebRtcPeer.WebRtcPeerRecvonly(options,
       error => {
         if (error) {
-          return console.error(error);
+          return this.onError(error);
         }
+        console.log(">>>>>>>WebRtcPeerRecvonly", error)
         this.webRtcPeer.generateOffer((a, b) => this.onOffer(a, b));
       });
   }
@@ -62,10 +64,12 @@ export class KurentoService implements OnDestroy {
     if (error) {
       return console.error('Error generating the offer');
     }
+    console.log(">>>>>>>onOffer", this.webSocketUrl, this.cameraURL)
 
-    kurentoClient(this.webSocketUrl)
-      .then((kurentoClient) => {
-        kurentoClient.create("MediaPipeline")
+    // kurentoClient.KurentoClient(this.webSocketUrl)
+    new kurentoClient(this.webSocketUrl)
+      .then((client) => {
+        client.create("MediaPipeline")
           .then((p) => {
             this.pipeline = p;
             this.pipeline.create("PlayerEndpoint", {uri: this.cameraURL})
