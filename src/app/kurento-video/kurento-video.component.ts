@@ -26,6 +26,10 @@ export class KurentoVideoComponent implements AfterViewInit {
   @ViewChild('video')
   protected video: ElementRef;
 
+  @ViewChild('camerasource')
+  protected camerasource: ElementRef;
+  
+
   constructor(
     protected kurentoService: KurentoService
   ) { }
@@ -46,6 +50,12 @@ export class KurentoVideoComponent implements AfterViewInit {
   }
 
   public play(): void {
+    let url = this.camerasource.nativeElement.value === "" ? this.cameraURL : this.camerasource.nativeElement.value;
+    this.kurentoService.configure({
+      cameraURL: url,
+      webSocketUrl: this.webSocketUrl,
+      videoComponent: this.video
+    });
     this.kurentoService.start();
   }
 
