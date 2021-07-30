@@ -91,6 +91,7 @@ export class KurentoService implements OnDestroy {
                         player.play()
                           .then(() => {
                             console.log("Player playing ...");
+                            this.status.next(VideoStatus.Play);
                           })
                           .catch((error) => {
                             this.onError(error);
