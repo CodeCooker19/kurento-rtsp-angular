@@ -13,7 +13,6 @@ import { KurentoService, VideoStatus } from '../../services/kurento.service';
   }
 })
 export class KurentoVideoComponent implements AfterViewInit {
-  @Input('camera')
   public cameraURL: string;
   @Input('websocket')
   public webSocketUrl: string;
@@ -48,7 +47,12 @@ export class KurentoVideoComponent implements AfterViewInit {
   }
 
   public play(): void {
-    let url = this.camerasource.nativeElement.value === "" ? this.cameraURL : this.camerasource.nativeElement.value;
+    let url = this.camerasource.nativeElement.value;
+    if(url === "") {
+      alert("Please input camera url");
+      return;
+    }
+    
     this.kurentoService.configure({
       cameraURL: url,
       webSocketUrl: this.webSocketUrl,
