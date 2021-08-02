@@ -1,14 +1,12 @@
 import { AfterViewInit, Component, ElementRef, Input, ViewChild, ViewEncapsulation } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
-
 import { KurentoService, VideoStatus } from '../../services/kurento.service';
-import { WebsocketService } from '../../services/websocket.service';
 
 @Component({
   selector: 'app-kurento-video',
   templateUrl: './kurento-video.component.html',
   styleUrls: ['./kurento-video.component.scss'],
-  providers: [WebsocketService, KurentoService],
+  providers: [KurentoService],
   encapsulation: ViewEncapsulation.None,
   host: {
     '[class.app-kurento-video]': 'true'

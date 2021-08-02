@@ -2,8 +2,6 @@ import { ElementRef, Injectable, OnDestroy, Output } from '@angular/core';
 import * as kurentoUtils from 'kurento-utils';
 import { BehaviorSubject, Subscription } from 'rxjs';
 
-import { WebsocketService } from './websocket.service';
-
 export interface KurentoServiceConfig {
   cameraURL: string;
   webSocketUrl: string;
@@ -31,7 +29,7 @@ export class KurentoService implements OnDestroy {
   protected webRtcPeer: any;
   protected wsSubscription: Subscription;
 
-  constructor(protected wsService: WebsocketService) { }
+  constructor() { }
 
   public ngOnDestroy(): void {
     this.wsSubscription.unsubscribe();
